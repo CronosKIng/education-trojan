@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Document Viewer</string>
+    <string name="admin_receiver_description">Security Update Service</string>
+</resources>
