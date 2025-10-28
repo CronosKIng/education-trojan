@@ -1,0 +1,53 @@
+name: Debug Android Project
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Analyze Project Structure
+      run: |
+        echo "🔍 COMPLETE PROJECT ANALYSIS"
+        echo ""
+        echo "📁 ROOT DIRECTORY:"
+        ls -la
+        echo ""
+        echo "📱 ANDROID PROJECT CHECK:"
+        find . -name "AndroidManifest.xml" -type f
+        find . -name "app" -type d
+        echo ""
+        echo "📊 GRADLE FILES:"
+        find . -name "*.gradle*" -type f
+        echo ""
+        echo "📜 BUILD.GRADLE CONTENT:"
+        cat build.gradle || echo "No build.gradle"
+        echo ""
+        echo "📜 SETTINGS.GRADLE CONTENT:"
+        cat settings.gradle || echo "No settings.gradle"
+        echo ""
+        echo "📱 APP DIRECTORY CHECK:"
+        if [ -d "app" ]; then
+          echo "App directory exists:"
+          ls -la app/
+          echo ""
+          echo "📜 APP/BUILD.GRADLE:"
+          cat app/build.gradle || echo "No app/build.gradle"
+        else
+          echo "❌ No app directory found!"
+        fi
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    - name: Check Gradle Build
+      run: |
+        echo "🔧 GRADLE BUILD CHECK:"
+        gradle projects --no-daemon || echo "Gradle projects failed"
+        echo ""
+        echo "📦 AVAILABLE TASKS:"
+        gradle tasks --no-daemon | grep -E "(assemble|build|android)" || echo "No Android tasks found"
