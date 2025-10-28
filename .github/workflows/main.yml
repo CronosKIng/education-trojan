@@ -42,147 +42,56 @@ jobs:
         echo "Directory contents:"
         ls -la
         
-        # Check for Gradle files
-        if [ -f "build.gradle" ] || [ -f "app/build.gradle" ]; then
-          echo "✅ Gradle build file found"
-        else
-          echo "❌ No Gradle build file found"
-          echo "Creating basic Android project structure..."
+        # Check for existing Android project
+        if [ -f "build.gradle" ] && [ -f "settings.gradle" ]; then
+          echo "✅ Android project detected"
           
-          # Create basic gradle files if missing (for testing)
-          if [ ! -f "build.gradle" ]; then
-            cat > build.gradle << 'EOF'
-            // Top-level build file
-            buildscript {
-                repositories {
-                    google()
-                    mavenCentral()
-                }
-                dependencies {
-                    classpath "com.android.tools.build:gradle:8.1.0"
-                }
-            }
-            
-            allprojects {
-                repositories {
-                    google()
-                    mavenCentral()
-                }
-            }
-            
-            task clean(type: Delete) {
-                delete rootProject.buildDir
-            }
-            EOF
+          # Check which modules exist
+          if [ -d "app" ]; then
+            echo "✅ App module found"
           fi
           
-          if [ ! -f "app/build.gradle" ]; then
-            mkdir -p app
-            cat > app/build.gradle << 'EOF'
-            plugins {
-                id 'com.android.application'
-            }
-            
-            android {
-                namespace 'com.example.educationalapp'
-                compileSdk 34
-                
-                defaultConfig {
-                    applicationId "com.example.educationalapp"
-                    minSdk 21
-                    targetSdk 34
-                    versionCode 1
-                    versionName "1.0"
-                }
-                
-                buildTypes {
-                    release {
-                        minifyEnabled false
-                        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                    }
-                    debug {
-                        debuggable true
-                    }
-                }
-            }
-            
-            dependencies {
-                implementation 'androidx.appcompat:appcompat:1.6.1'
-                implementation 'com.google.android.material:material:1.9.0'
-                implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-            }
-            EOF
+          if [ -d "RansomwareEducationApp" ]; then
+            echo "✅ RansomwareEducationApp module found"
           fi
-        fi
-        
-        # Check for gradle wrapper
-        if [ -f "gradlew" ]; then
-          echo "✅ Gradle wrapper found"
-          chmod +x ./gradlew
+          
+          # Use existing gradlew or create one
+          if [ -f "gradlew" ]; then
+            echo "✅ Gradle wrapper found"
+            chmod +x ./gradlew
+          else
+            echo "ℹ️ Creating gradle wrapper..."
+            gradle wrapper
+          fi
         else
-          echo "⚠️ Gradle wrapper missing, creating one..."
-          # Initialize gradle wrapper
-          gradle wrapper --version
-        fi
-        
-        # Check source directory
-        if [ -d "app/src/main" ]; then
-          echo "✅ Source directory exists"
-        else
-          echo "⚠️ Source directory missing, creating basic structure..."
-          mkdir -p app/src/main/java/com/example/educationalapp
-          mkdir -p app/src/main/res
-          
-          # Create basic MainActivity
-          cat > app/src/main/java/com/example/educationalapp/MainActivity.java << 'EOF'
-          package com.example.educationalapp;
-          
-          import androidx.appcompat.app.AppCompatActivity;
-          import android.os.Bundle;
-          
-          public class MainActivity extends AppCompatActivity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  setContentView(R.layout.activity_main);
-              }
-          }
-          EOF
-          
-          # Create basic layout
-          mkdir -p app/src/main/res/layout
-          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:gravity="center"
-              android:orientation="vertical">
-              
-              <TextView
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="Educational Security App"
-                  android:textSize="24sp" />
-                  
-              <TextView
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:text="For Academic Research Only"
-                  android:textSize="16sp"
-                  android:layout_marginTop="16dp" />
-          </LinearLayout>
-          EOF
+          echo "❌ Not a valid Android project"
+          exit 1
         fi
         
     - name: Build APK
       run: |
         echo "🔨 Building Android APK..."
-        if [ -f "gradlew" ]; then
-          ./gradlew clean assemble${{ github.event.inputs.build_type || 'Release' }}
+        
+        # Determine build command based on available modules
+        if [ -d "app" ]; then
+          echo "📱 Building 'app' module"
+          if [ -f "gradlew" ]; then
+            ./gradlew clean assemble${{ github.event.inputs.build_type || 'Release' }}
+          else
+            gradle clean assemble${{ github.event.inputs.build_type || 'Release' }}
+          fi
+        elif [ -d "RansomwareEducationApp" ]; then
+          echo "📱 Building 'RansomwareEducationApp' module"
+          if [ -f "gradlew" ]; then
+            ./gradlew :RansomwareEducationApp:clean :RansomwareEducationApp:assemble${{ github.event.inputs.build_type || 'Release' }}
+          else
+            gradle :RansomwareEducationApp:clean :RansomwareEducationApp:assemble${{ github.event.inputs.build_type || 'Release' }}
+          fi
         else
-          gradle clean assemble${{ github.event.inputs.build_type || 'Release' }}
+          echo "❌ No buildable modules found"
+          exit 1
         fi
+        
         echo "✅ Build completed successfully!"
         
     - name: Find and list APK files
@@ -275,7 +184,7 @@ jobs:
       
     - name: Create educational documentation
       run: |
-        cat > EDUCATIONAL_PURPOSE.md << 'DOC'
+        cat > EDUCATIONAL_PURPOSE.md << 'DOCEOF'
         # Educational Purpose Documentation
         
         ## Project Overview
@@ -300,18 +209,18 @@ jobs:
         - Report vulnerabilities responsibly
         
         ## Build Instructions
-        ```bash
+        \`\`\`bash
         # Using gradle wrapper
         ./gradlew assembleRelease
         
         # Or using system gradle
         gradle assembleRelease
-        ```
+        \`\`\`
         
         ## Disclaimer
         This tool is provided for educational purposes only.
         Users assume all responsibility for legal and ethical use.
-        DOC
+        DOCEOF
         
     - name: Upload documentation
       uses: actions/upload-artifact@v4
