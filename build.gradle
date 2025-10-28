@@ -1,72 +1,20 @@
-name: Build Android APK
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.0.0'
+    }
+}
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - name: Fix Gradle Configuration
-      run: |
-        # Fix build.gradle for Gradle 9+
-        cat > build.gradle << 'EOF'
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.0.0'
-            }
-        }
-        
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        
-        task clean(type: Delete) {
-            delete rootProject.buildDir
-        }
-        EOF
-        
-        # Fix settings.gradle
-        cat > settings.gradle << 'EOF'
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        
-        rootProject.name = "RansomwareEducationApp"
-        include ':app'
-        EOF
-    - name: Build APK
-      run: |
-        chmod +x ./gradlew || echo "No gradlew, using system gradle"
-        gradle assembleDebug --no-daemon
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk-artifact
-        path: "**/*.apk"
-        if-no-files-found: ignore
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
